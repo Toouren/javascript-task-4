@@ -4,7 +4,7 @@
  * Сделано задание на звездочку
  * Реализованы методы several и through
  */
-const isStar = true;
+const isStar = false;
 
 /**
  * Возвращает новый emitter
@@ -13,31 +13,65 @@ const isStar = true;
 function getEmitter() {
     return {
 
+        events: new Map(),
+
         /**
          * Подписаться на событие
          * @param {String} event
          * @param {Object} context
          * @param {Function} handler
+         * @returns {this}
          */
         on: function (event, context, handler) {
-            console.info(event, context, handler);
+            const events = this.events;
+            if (typeof events[event] === 'undefined') {
+                events[event] = [];
+            }
+
+            events[event].push({ context, handler });
+            this.events = events;
+
+            return this;
         },
 
         /**
          * Отписаться от события
          * @param {String} event
          * @param {Object} context
+         * @returns {this}
          */
         off: function (event, context) {
-            console.info(event, context);
+            const events = this.events;
+            Object.keys(events).forEach(eventName => {
+                if (eventName === event || eventName.startsWith(`${event}.`)) {
+                    events[eventName] = events[eventName].filter(sub =>{
+                        return sub.context !== context;
+                    });
+                }
+            });
+            this.events = events;
+
+            return this;
         },
 
         /**
          * Уведомить о событии
          * @param {String} event
+         * @returns {this}
          */
         emit: function (event) {
-            console.info(event);
+            const events = this.events;
+            if (typeof events[event] !== 'undefined') {
+                events[event].forEach(sub => {
+                    sub.handler.apply(sub.context);
+                });
+            }
+
+            if (event.lastIndexOf('.') !== -1) {
+                this.emit(event.substring(0, event.lastIndexOf('.')));
+            }
+
+            return this;
         },
 
         /**
